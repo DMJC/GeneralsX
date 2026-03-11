@@ -29,7 +29,14 @@
 
 #pragma once
 
+// GeneralsX @build BenderAI 10/02/2026 - Use GLM on Linux; D3DX math only on Windows
+#ifdef _WIN32
 #include <d3dx8math.h>
+#elif defined(SAGE_USE_GLM)
+#include <glm/glm.hpp>
+#else
+#error "Missing a math library"
+#endif
 #include "Common/STLTypedefs.h"
 
 #define USUAL_TOLERANCE 1.0f
@@ -37,7 +44,11 @@
 class BezierSegment
 {
 	protected:
+#ifndef SAGE_USE_GLM
 		static const D3DXMATRIX s_bezBasisMatrix;
+#else
+		static const glm::mat4 s_bezBasisMatrix;
+#endif
 		Coord3D m_controlPoints[4];
 
 	public:	// Constructors
