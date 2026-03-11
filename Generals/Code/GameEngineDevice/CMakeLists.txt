@@ -178,6 +178,29 @@ set(GAMEENGINEDEVICE_SRC
     Source/Win32Device/GameClient/Win32Mouse.cpp
 )
 
+# GeneralsX @feature BenderAI 10/03/2026 - OpenAL audio backend (ported from GeneralsMD/Zero Hour)
+# Reuses GeneralsMD's OpenAL + FFmpeg implementation directly, sharing the same audio engine.
+if(SAGE_USE_OPENAL)
+    list(APPEND GAMEENGINEDEVICE_SRC
+        ${CMAKE_SOURCE_DIR}/GeneralsMD/Code/GameEngineDevice/Source/OpenALAudioDevice/OpenALAudioManager.cpp
+        ${CMAKE_SOURCE_DIR}/GeneralsMD/Code/GameEngineDevice/Source/OpenALAudioDevice/OpenALAudioStream.cpp
+        ${CMAKE_SOURCE_DIR}/GeneralsMD/Code/GameEngineDevice/Source/OpenALAudioDevice/OpenALAudioCache.cpp
+        ${CMAKE_SOURCE_DIR}/GeneralsMD/Code/GameEngineDevice/Source/VideoDevice/FFmpeg/FFmpegFile.cpp
+    )
+endif()
+
+# GeneralsX @build BenderAI 10/03/2026 - SDL3 windowing/input engine and mouse/keyboard for Linux
+if(SAGE_USE_SDL3)
+    list(APPEND GAMEENGINEDEVICE_SRC
+        Source/SDL3GameEngine.cpp
+        Include/SDL3GameEngine.h
+        Source/SDL3Device/GameClient/SDL3Mouse.cpp
+        Include/SDL3Device/GameClient/SDL3Mouse.h
+        Source/SDL3Device/GameClient/SDL3Keyboard.cpp
+        Include/SDL3Device/GameClient/SDL3Keyboard.h
+    )
+endif()
+
 add_library(g_gameenginedevice STATIC)
 set_target_properties(g_gameenginedevice PROPERTIES OUTPUT_NAME gameenginedevice)
 
@@ -206,3 +229,19 @@ target_link_libraries(g_gameenginedevice PUBLIC
     corei_gameenginedevice_public
     g_gameengine
 )
+
+# GeneralsX @feature BenderAI 10/03/2026 - OpenAL audio backend (ported from GeneralsMD/Zero Hour)
+if(SAGE_USE_OPENAL)
+    include(${CMAKE_SOURCE_DIR}/cmake/openal.cmake)
+    find_package(OpenAL REQUIRED)
+    target_link_libraries(g_gameenginedevice PUBLIC OpenAL::OpenAL)
+
+    # GeneralsMD headers for OpenALAudioDevice (public: OpenALAudioManager.h, FFmpegFile.h)
+    target_include_directories(g_gameenginedevice PUBLIC
+        ${CMAKE_SOURCE_DIR}/GeneralsMD/Code/GameEngineDevice/Include
+    )
+    # Private: OpenALAudioCache.h lives alongside the source
+    target_include_directories(g_gameenginedevice PRIVATE
+        ${CMAKE_SOURCE_DIR}/GeneralsMD/Code/GameEngineDevice/Source/OpenALAudioDevice
+    )
+endif()
