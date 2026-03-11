@@ -9,21 +9,33 @@ else()
     set_target_properties(g_generals PROPERTIES OUTPUT_NAME GeneralsX)
 endif()
 
+# GeneralsX @build Windows-specific libraries
+if(WIN32)
+    target_link_libraries(g_generals PRIVATE
+        binkstub
+        comctl32
+        d3d8
+        d3dx8
+        dinput8
+        dxguid
+        imm32
+        milesstub
+        vfw32
+        winmm
+    )
+endif()
+
+# Cross-platform core libraries
 target_link_libraries(g_generals PRIVATE
-    binkstub
-    comctl32
-    d3d8
-    d3dx8
-    dinput8
-    dxguid
     g_gameengine
     g_gameenginedevice
     gi_always
-    imm32
-    milesstub
-    vfw32
-    winmm
 )
+
+# GeneralsX @build Linux SDL3 windowing/input
+if(SAGE_USE_SDL3)
+    target_link_libraries(g_generals PRIVATE sdl3lib)
+endif()
 
 # TODO Originally referred to build host and user, replace with git info perhaps?
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/GeneratedVersion.h
@@ -67,8 +79,11 @@ target_include_directories(g_generals PRIVATE
 )
 
 target_sources(g_generals PRIVATE
-    WinMain.cpp
-    WinMain.h
+    # GeneralsX @build Use platform-appropriate entry point
+    $<$<BOOL:${WIN32}>:WinMain.cpp>
+    $<$<BOOL:${WIN32}>:WinMain.h>
+    $<$<NOT:$<BOOL:${WIN32}>>:SDL3Main.cpp>
+    $<$<NOT:$<BOOL:${WIN32}>>:LinuxStubs.cpp>
 )
 
 # RC files are optional for MinGW builds
