@@ -189,6 +189,18 @@ if(SAGE_USE_OPENAL)
     )
 endif()
 
+# GeneralsX @build BenderAI 10/03/2026 - SDL3 windowing/input engine and mouse/keyboard for Linux
+if(SAGE_USE_SDL3)
+    list(APPEND GAMEENGINEDEVICE_SRC
+        Source/SDL3GameEngine.cpp
+        Include/SDL3GameEngine.h
+        Source/SDL3Device/GameClient/SDL3Mouse.cpp
+        Include/SDL3Device/GameClient/SDL3Mouse.h
+        Source/SDL3Device/GameClient/SDL3Keyboard.cpp
+        Include/SDL3Device/GameClient/SDL3Keyboard.h
+    )
+endif()
+
 add_library(g_gameenginedevice STATIC)
 set_target_properties(g_gameenginedevice PROPERTIES OUTPUT_NAME gameenginedevice)
 
