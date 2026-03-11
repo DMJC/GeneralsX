@@ -420,7 +420,8 @@ void UpdateSlotList( GameInfo *myGame, GameWindow *comboPlayer[],
 				max = GadgetComboBoxGetLength(comboColor[i]);
 				for (idx=0; idx<max; ++idx)
 				{
-					Int color = (Int)GadgetComboBoxGetItemData(comboColor[i], idx);
+					// GeneralsX @build Fix pointer-to-integer truncation on 64-bit platforms.
+				Int color = (Int)(intptr_t)GadgetComboBoxGetItemData(comboColor[i], idx);
 					if (color == slot->getColor())
 					{
 						GadgetComboBoxSetSelectedPos(comboColor[i], idx, TRUE);
@@ -433,7 +434,8 @@ void UpdateSlotList( GameInfo *myGame, GameWindow *comboPlayer[],
 				max = GadgetComboBoxGetLength(comboTeam[i]);
 				for (idx=0; idx<max; ++idx)
 				{
-					Int team = (Int)GadgetComboBoxGetItemData(comboTeam[i], idx);
+					// GeneralsX @build Fix pointer-to-integer truncation on 64-bit platforms.
+				Int team = (Int)(intptr_t)GadgetComboBoxGetItemData(comboTeam[i], idx);
 					if (team == slot->getTeamNumber())
 					{
 						GadgetComboBoxSetSelectedPos(comboTeam[i], idx, TRUE);
@@ -446,7 +448,8 @@ void UpdateSlotList( GameInfo *myGame, GameWindow *comboPlayer[],
 				max = GadgetComboBoxGetLength(comboPlayerTemplate[i]);
 				for (idx=0; idx<max; ++idx)
 				{
-					Int playerTemplate = (Int)GadgetComboBoxGetItemData(comboPlayerTemplate[i], idx);
+					// GeneralsX @build Fix pointer-to-integer truncation on 64-bit platforms.
+				Int playerTemplate = (Int)(intptr_t)GadgetComboBoxGetItemData(comboPlayerTemplate[i], idx);
 					if (playerTemplate == slot->getPlayerTemplate())
 					{
 						GadgetComboBoxSetSelectedPos(comboPlayerTemplate[i], idx, TRUE);

@@ -73,7 +73,9 @@ enum { WIN_COLOR_UNDEFINED = GAME_COLOR_UNDEFINED };
 
 // WindowMsgData --------------------------------------------------------------
 //-----------------------------------------------------------------------------
-typedef UnsignedInt WindowMsgData;
+// GeneralsX @build Fix pointer-to-integer truncation on 64-bit platforms.
+#include <cstdint>
+typedef uintptr_t WindowMsgData;
 
 //-----------------------------------------------------------------------------
 enum WindowMsgHandledType CPP_11(: Int) { MSG_IGNORED, MSG_HANDLED };
