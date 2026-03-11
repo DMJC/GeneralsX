@@ -25,7 +25,13 @@
 #include "dx8wrapper.h"
 #include "bitmaphandler.h"
 #include "colorspace.h"
+// GeneralsX @build DirectDraw header is Windows-only; define required DDS constants locally on Linux.
+#ifdef _WIN32
 #include <ddraw.h>
+#else
+#define DDSCAPS2_CUBEMAP 0x00000200
+#define DDSCAPS2_VOLUME  0x00200000
+#endif
 
 // ----------------------------------------------------------------------------
 

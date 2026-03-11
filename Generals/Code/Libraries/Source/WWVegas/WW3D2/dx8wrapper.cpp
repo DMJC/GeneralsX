@@ -47,8 +47,17 @@
 #define WINVER 0x0500 // Required to access GetMonitorInfo in VC6.
 #endif
 
+// GeneralsX @build LoadLibrary/GetProcAddress/FreeLibrary cross-platform wrappers (dlopen on Linux).
+#include "module_compat.h"
+#ifndef _WIN32
+#include <dlfcn.h>
+#endif
+
 #include "dx8wrapper.h"
+// GeneralsX @build Embedded browser uses COM/LPDISPATCH which is Windows-only.
+#ifdef _WIN32
 #include "dx8webbrowser.h"
+#endif
 #include "dx8fvf.h"
 #include "dx8vertexbuffer.h"
 #include "dx8indexbuffer.h"
@@ -313,7 +322,17 @@ bool DX8Wrapper::Init(void * hwnd, bool lite)
 	Invalidate_Cached_Render_States();
 
 	if (!lite) {
+		// GeneralsX @build Load platform-specific DXVK/D3D8 shared library.
+#ifdef _WIN32
 		D3D8Lib = LoadLibrary("D3D8.DLL");
+#elif defined(__APPLE__)
+		D3D8Lib = LoadLibrary("libdxvk_d3d8.dylib");
+#else
+		D3D8Lib = LoadLibrary("libdxvk_d3d8.so");
+		if (D3D8Lib == nullptr) {
+			fprintf(stderr, "ERROR: DX8Wrapper::Init() - dlopen failed: %s\n", dlerror());
+		}
+#endif
 
 		if (D3D8Lib == nullptr) return false;	// Return false at this point if init failed
 
@@ -871,6 +890,8 @@ void DX8Wrapper::Resize_And_Position_Window()
 		}
 		else
 		{
+			// GeneralsX @build Monitor API is Windows-only; use simple centering on Linux.
+#ifdef _WIN32
 			// TheSuperHackers @feature helmutbuhler 14/04/2025
 			// Center the window in the workarea of the monitor it is on.
 			MONITORINFO mi = {sizeof(MONITORINFO)};
@@ -891,6 +912,10 @@ void DX8Wrapper::Resize_And_Position_Window()
 			::SetWindowPos (_Hwnd, nullptr, left, top, width, height, SWP_NOZORDER);
 
 			DEBUG_LOG(("Window positioned to x:%d y:%d, resized to w:%d h:%d", left, top, width, height));
+#else
+			::SetWindowPos (_Hwnd, nullptr, 0, 0, width, height, SWP_NOZORDER);
+			DEBUG_LOG(("Window resized (Linux/SDL) to w:%d h:%d", width, height));
+#endif
 		}
 	}
 }
@@ -1590,7 +1615,10 @@ void DX8Wrapper::Begin_Scene(void)
 
 	DX8CALL(BeginScene());
 
+	// GeneralsX @build Embedded browser uses COM/LPDISPATCH which is Windows-only.
+#ifdef _WIN32
 	DX8WebBrowser::Update();
+#endif
 }
 
 void DX8Wrapper::End_Scene(bool flip_frames)
@@ -1598,7 +1626,10 @@ void DX8Wrapper::End_Scene(bool flip_frames)
 	DX8_THREAD_ASSERT();
 	DX8CALL(EndScene());
 
+	// GeneralsX @build Embedded browser uses COM/LPDISPATCH which is Windows-only.
+#ifdef _WIN32
 	DX8WebBrowser::Render(0);
+#endif
 
 	if (flip_frames) {
 		DX8_Assert();
@@ -1920,7 +1951,8 @@ void DX8Wrapper::Draw(
 
 #ifdef MESH_RENDER_SNAPSHOT_ENABLED
 	if (WW3D::Is_Snapshot_Activated()) {
-		unsigned long passes=0;
+		// GeneralsX @build Use DWORD (uint32) not unsigned long (64-bit on Linux) to match IDirect3DDevice8::ValidateDevice signature.
+		DWORD passes=0;
 		SNAPSHOT_SAY(("ValidateDevice:"));
 		HRESULT res=D3DDevice->ValidateDevice(&passes);
 		switch (res) {
