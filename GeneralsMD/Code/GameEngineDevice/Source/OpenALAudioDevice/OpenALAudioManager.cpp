@@ -570,7 +570,8 @@ void OpenALAudioManager::stopAudio(AudioAffect which)
 	if (BitIsSet(which, AudioAffect_Speech | AudioAffect_Music)) {
 		for (it = m_playingStreams.begin(); it != m_playingStreams.end(); ++it) {
 			playing = *it;
-			if (playing) {
+			// GeneralsX @bugfix BenderAI 11/03/2026 - guard against null audioEventRTS/info
+			if (playing && playing->m_audioEventRTS && playing->m_audioEventRTS->getAudioEventInfo()) {
 				if (playing->m_audioEventRTS->getAudioEventInfo()->m_soundType == AT_Music) {
 					if (!BitIsSet(which, AudioAffect_Music)) {
 						continue;
@@ -614,7 +615,8 @@ void OpenALAudioManager::pauseAudio(AudioAffect which)
 	if (BitIsSet(which, AudioAffect_Speech | AudioAffect_Music)) {
 		for (it = m_playingStreams.begin(); it != m_playingStreams.end(); ++it) {
 			playing = *it;
-			if (playing) {
+			// GeneralsX @bugfix BenderAI 11/03/2026 - guard against null audioEventRTS/info
+			if (playing && playing->m_audioEventRTS && playing->m_audioEventRTS->getAudioEventInfo()) {
 				if (playing->m_audioEventRTS->getAudioEventInfo()->m_soundType == AT_Music) {
 					if (!BitIsSet(which, AudioAffect_Music)) {
 						continue;
@@ -676,7 +678,8 @@ void OpenALAudioManager::resumeAudio(AudioAffect which)
 	if (BitIsSet(which, AudioAffect_Speech | AudioAffect_Music)) {
 		for (it = m_playingStreams.begin(); it != m_playingStreams.end(); ++it) {
 			playing = *it;
-			if (playing) {
+			// GeneralsX @bugfix BenderAI 11/03/2026 - guard against null audioEventRTS/info
+			if (playing && playing->m_audioEventRTS && playing->m_audioEventRTS->getAudioEventInfo()) {
 				if (playing->m_audioEventRTS->getAudioEventInfo()->m_soundType == AT_Music) {
 					if (!BitIsSet(which, AudioAffect_Music)) {
 						continue;
