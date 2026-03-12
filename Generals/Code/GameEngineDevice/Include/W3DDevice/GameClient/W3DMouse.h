@@ -111,6 +111,13 @@ private:
 
 	void setCursorDirection(MouseCursor cursor);	///figure out direction for oriented 2D cursors.
 
+	// GeneralsX @build Fix pointer-to-integer truncation on 64-bit platforms.
+	// Linux: member from Win32Mouse base class
+	// On Windows, inherited from Win32Mouse; on Linux, declare locally for setDirect/setCursor support
+	#ifndef _WIN32
+	Int m_directionFrame;			///< current frame of directional cursor (from 0 points up).
+	#endif
+
 };
 
 // INLINING ///////////////////////////////////////////////////////////////////
