@@ -1,7 +1,7 @@
 # Build tools
 
 # Build useful tool binaries.
-if(RTS_BUILD_GENERALS_TOOLS)
+if(RTS_BUILD_GENERALS_TOOLS AND (WIN32 OR "${CMAKE_SYSTEM}" MATCHES "Windows"))
     add_subdirectory(GUIEdit)
     add_subdirectory(ImagePacker)
     add_subdirectory(MapCacheBuilder)

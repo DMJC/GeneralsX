@@ -48,7 +48,16 @@
 #endif
 
 #include "dx8wrapper.h"
+// GeneralsX @build BenderAI 10/02/2026 - Need LoadLibrary/GetProcAddress/FreeLibrary for dynamic loading
+#include "module_compat.h"
+// GeneralsX @build felipebraz 16/02/2026 - Need dlerror() for dlopen() error reporting on Linux
+#ifndef _WIN32
+#include <dlfcn.h>
+#endif
+// GeneralsX @build BenderAI 10/02/2026 - Embedded browser Windows-only (requires COM LPDISPATCH)
+#ifdef _WIN32
 #include "dx8webbrowser.h"
+#endif
 #include "dx8fvf.h"
 #include "dx8vertexbuffer.h"
 #include "dx8indexbuffer.h"
@@ -313,12 +322,38 @@ bool DX8Wrapper::Init(void * hwnd, bool lite)
 	Invalidate_Cached_Render_States();
 
 	if (!lite) {
+		// GeneralsX @build BenderAI 10/02/2026 - Platform-specific DLL/SO/DYLIB loading (Phase 5: macOS)
+#ifdef _WIN32
 		D3D8Lib = LoadLibrary("D3D8.DLL");
+#elif defined(__APPLE__)
+		fprintf(stderr, "DEBUG: DX8Wrapper::Init() - Loading libdxvk_d3d8.dylib (macOS)...\n");
+		D3D8Lib = LoadLibrary("libdxvk_d3d8.dylib");
+		fprintf(stderr, "DEBUG: DX8Wrapper::Init() - LoadLibrary result: %p\n", (void*)D3D8Lib);
+		if (D3D8Lib == nullptr) {
+			const char* error = dlerror();
+			fprintf(stderr, "ERROR: DX8Wrapper::Init() - dlerror(): %s\n", error ? error : "unknown");
+		}
+#else
+		fprintf(stderr, "DEBUG: DX8Wrapper::Init() - Loading libdxvk_d3d8.so (Linux)...\n");
+		D3D8Lib = LoadLibrary("libdxvk_d3d8.so");
+		fprintf(stderr, "DEBUG: DX8Wrapper::Init() - LoadLibrary result: %p\n", (void*)D3D8Lib);
+		if (D3D8Lib == nullptr) {
+			const char* error = dlerror();
+			fprintf(stderr, "ERROR: DX8Wrapper::Init() - dlerror(): %s\n", error ? error : "unknown");
+		}
+#endif
 
-		if (D3D8Lib == nullptr) return false;	// Return false at this point if init failed
+		if (D3D8Lib == nullptr) {
+			fprintf(stderr, "ERROR: DX8Wrapper::Init() - Failed to load D3D8 library\n");
+			return false;	// Return false at this point if init failed
+		}
 
+		fprintf(stderr, "DEBUG: DX8Wrapper::Init() - Getting Direct3DCreate8 function pointer...\n");
 		Direct3DCreate8Ptr = (Direct3DCreate8Type) GetProcAddress(D3D8Lib, "Direct3DCreate8");
-		if (Direct3DCreate8Ptr == nullptr) return false;
+		if (Direct3DCreate8Ptr == nullptr) {
+			fprintf(stderr, "ERROR: DX8Wrapper::Init() - Failed to get Direct3DCreate8 function\n");
+			return false;
+		}
 
 		/*
 		** Create the D3D interface object
@@ -871,6 +906,7 @@ void DX8Wrapper::Resize_And_Position_Window()
 		}
 		else
 		{
+#ifdef _WIN32
 			// TheSuperHackers @feature helmutbuhler 14/04/2025
 			// Center the window in the workarea of the monitor it is on.
 			MONITORINFO mi = {sizeof(MONITORINFO)};
@@ -891,6 +927,12 @@ void DX8Wrapper::Resize_And_Position_Window()
 			::SetWindowPos (_Hwnd, nullptr, left, top, width, height, SWP_NOZORDER);
 
 			DEBUG_LOG(("Window positioned to x:%d y:%d, resized to w:%d h:%d", left, top, width, height));
+#else
+			// GeneralsX @build BenderAI 10/02/2026 - SDL3 window management on Linux (no Monitor API needed)
+			::SetWindowPos (_Hwnd, nullptr, 0, 0, width, height, SWP_NOZORDER);
+
+			DEBUG_LOG(("Window resized (Linux/SDL) to w:%d h:%d", width, height));
+#endif
 		}
 	}
 }
@@ -1590,7 +1632,10 @@ void DX8Wrapper::Begin_Scene(void)
 
 	DX8CALL(BeginScene());
 
+	// GeneralsX @build BenderAI 10/02/2026 - Embedded browser Windows-only
+#ifdef _WIN32
 	DX8WebBrowser::Update();
+#endif
 }
 
 void DX8Wrapper::End_Scene(bool flip_frames)
@@ -1598,7 +1643,10 @@ void DX8Wrapper::End_Scene(bool flip_frames)
 	DX8_THREAD_ASSERT();
 	DX8CALL(EndScene());
 
+	// GeneralsX @build BenderAI 10/02/2026 - Embedded browser Windows-only
+#ifdef _WIN32
 	DX8WebBrowser::Render(0);
+#endif
 
 	if (flip_frames) {
 		DX8_Assert();
@@ -1920,7 +1968,7 @@ void DX8Wrapper::Draw(
 
 #ifdef MESH_RENDER_SNAPSHOT_ENABLED
 	if (WW3D::Is_Snapshot_Activated()) {
-		unsigned long passes=0;
+		DWORD passes=0;		// GeneralsX @build BenderAI 10/02/2026 - Use DWORD (32-bit) instead of unsigned long (platform-dependent)
 		SNAPSHOT_SAY(("ValidateDevice:"));
 		HRESULT res=D3DDevice->ValidateDevice(&passes);
 		switch (res) {

@@ -3361,6 +3361,54 @@ void operator delete[](void * p, const char *, int)
 }
 
 //-----------------------------------------------------------------------------
+// C++17 aligned operator new/delete — required on non-Windows platforms where
+// third-party libraries (e.g. openal-soft) allocate over-aligned types (>8 bytes).
+// The game pool allocator only guarantees MEM_BOUND_ALIGNMENT (4-byte), so SSE
+// movaps instructions in library constructors crash on pool-allocated memory.
+// These overloads bypass the pool and use posix_memalign for such allocations.
+// GeneralsX @bugfix 09/03/2026
+#ifndef _WIN32
+#include <new>
+#include <cstdlib>
+
+void *operator new(size_t size, std::align_val_t alignment)
+{
+	void *p = nullptr;
+	if (::posix_memalign(&p, static_cast<size_t>(alignment), size) != 0)
+		throw std::bad_alloc();
+	return p;
+}
+
+void *operator new[](size_t size, std::align_val_t alignment)
+{
+	void *p = nullptr;
+	if (::posix_memalign(&p, static_cast<size_t>(alignment), size) != 0)
+		throw std::bad_alloc();
+	return p;
+}
+
+void operator delete(void *p, std::align_val_t) noexcept
+{
+	::free(p);
+}
+
+void operator delete[](void *p, std::align_val_t) noexcept
+{
+	::free(p);
+}
+
+void operator delete(void *p, size_t, std::align_val_t) noexcept
+{
+	::free(p);
+}
+
+void operator delete[](void *p, size_t, std::align_val_t) noexcept
+{
+	::free(p);
+}
+#endif // !_WIN32
+
+//-----------------------------------------------------------------------------
 #ifdef MEMORYPOOL_OVERRIDE_MALLOC
 void *calloc(size_t a, size_t b)
 {

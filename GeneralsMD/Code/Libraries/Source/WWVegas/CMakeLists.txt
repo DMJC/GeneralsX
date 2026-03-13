@@ -20,7 +20,9 @@ target_include_directories(z_wwcommon INTERFACE
     WW3D2
 )
 
-add_subdirectory(WWAudio)
+if(WIN32)
+    add_subdirectory(WWAudio)
+endif()
 add_subdirectory(WW3D2)
 add_subdirectory(WWDownload)
 

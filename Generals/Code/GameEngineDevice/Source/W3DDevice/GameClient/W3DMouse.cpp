@@ -334,7 +334,10 @@ void W3DMouse::init( void )
 {
 
 	//check if system already initialized and texture assets loaded.
+	// GeneralsX @build Fix pointer-to-integer truncation on 64-bit platforms.
+	#ifdef _WIN32
 	Win32Mouse::init();
+	#endif
 	setCursor(ARROW);	//set default starting cursor image
 
 	WWASSERT(!thread.Is_Running());
@@ -354,7 +357,10 @@ void W3DMouse::reset( void )
 {
 
 	// extend
+	// GeneralsX @build Fix pointer-to-integer truncation on 64-bit platforms.
+	#ifdef _WIN32
 	Win32Mouse::reset();
+	#endif
 
 }
 

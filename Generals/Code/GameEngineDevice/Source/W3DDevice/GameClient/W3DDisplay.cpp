@@ -37,7 +37,13 @@ static void drawFramerateBar(void);
 #include <numeric>
 #include <stdlib.h>
 #include <windows.h>
+// GeneralsX @bugfix BenderAI 10/03/2026 - io.h is Windows-specific, use unistd.h on Linux
+#ifdef _WIN32
 #include <io.h>
+#else
+#include <unistd.h> // access() for file existence checks
+#include <SDL3/SDL.h> // For SDL_ShowWindow() on Linux
+#endif
 #include <time.h>
 
 // USER INCLUDES //////////////////////////////////////////////////////////////
@@ -2805,6 +2811,8 @@ void W3DDisplay::setShroudLevel( Int x, Int y, CellShroudStatus setting )
 
 //=============================================================================
 ///Utility function to dump data into a .BMP file
+// GeneralsX @build BenderAI 10/03/2026 Screenshot is Windows-specific functionality
+#ifdef _WIN32
 static void CreateBMPFile(LPTSTR pszFile, char *image, Int width, Int height)
 {
 	HANDLE hf;                  // file handle
@@ -2879,7 +2887,15 @@ static void CreateBMPFile(LPTSTR pszFile, char *image, Int width, Int height)
 	// Free memory.
 	LocalFree( (HLOCAL) pbmi);
 }
-
+#else
+// Linux stub: Screenshot not implemented (would require SDL3 surface capture)
+static void CreateBMPFile(const char* pszFile, char *image, Int width, Int height)
+{
+	// TODO (Phase 3): Implement SDL3-based screenshot capture
+}
+#endif
+// GeneralsX @build BenderAI 10/03/2026 Screenshot is Windows-specific functionality
+#ifdef _WIN32
 ///Save Screen Capture to a file
 void W3DDisplay::takeScreenShot(void)
 {
@@ -3017,6 +3033,12 @@ void W3DDisplay::takeScreenShot(void)
 	ufileName.translate(leafname);
 	TheInGameUI->message(TheGameText->fetch("GUI:ScreenCapture"), ufileName.str());
 }
+#else
+void W3DDisplay::takeScreenShot(void)
+{
+	// TODO (Phase 3): Implement SDL3-based screenshot capture
+}
+#endif
 
 /** Start/Stop capturing an AVI movie*/
 void W3DDisplay::toggleMovieCapture(void)

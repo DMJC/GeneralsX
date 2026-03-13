@@ -302,6 +302,14 @@ public:
 	static void _Set_DX8_Transform(D3DTRANSFORMSTATETYPE transform, const D3DMATRIX& m);
 	static void _Get_DX8_Transform(D3DTRANSFORMSTATETYPE transform, D3DMATRIX& m);
 
+	// GeneralsX @bugfix BenderAI 10/03/2026 - Overloads for Matrix4x4 (binary-compatible with D3DMATRIX)
+	static WWINLINE void _Set_DX8_Transform(D3DTRANSFORMSTATETYPE transform, const Matrix4x4& m) {
+		_Set_DX8_Transform(transform, reinterpret_cast<const D3DMATRIX&>(m));
+	}
+	static WWINLINE void _Get_DX8_Transform(D3DTRANSFORMSTATETYPE transform, Matrix4x4& m) {
+		_Get_DX8_Transform(transform, reinterpret_cast<D3DMATRIX&>(m));
+	}
+
 	static void Set_DX8_Light(int index,D3DLIGHT8* light);
 	static void Set_DX8_Render_State(D3DRENDERSTATETYPE state, unsigned value);
 	static void Set_DX8_Clip_Plane(DWORD Index, CONST float* pPlane);
