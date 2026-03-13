@@ -27,8 +27,17 @@ if(SAGE_USE_OPENAL)
         URL_HASH "SHA256=7efd383d70508587fbc146e4c508771a2235a5fc8ae05bf6fe721c20a348bd7c"
     )
 
+    # Build as a static library to match the GeneralsX vcpkg approach.
+    # When OpenAL is a shared library, its ::operator new[](size_t, std::align_val_t)
+    # call in FlexArray::Create resolves through the dynamic linker and interacts
+    # badly with the game's custom global operator new[], causing a SIGSEGV in
+    # DeviceBase::DeviceBase. Static linking uses the same allocator as the game.
+    # openal-soft uses LIBTYPE (not BUILD_SHARED_LIBS) to control shared vs static.
+    set(LIBTYPE                      "STATIC" CACHE STRING "Build OpenAL as static lib" FORCE)
+    set(BUILD_SHARED_LIBS            OFF      CACHE BOOL   "Disable shared lib build"   FORCE)
+
     # Minimal build: no utilities, examples, or tests
-    set(ALSOFT_INSTALL_RUNTIME_LIBS  ON  CACHE BOOL "Install runtime libs" FORCE)
+    set(ALSOFT_INSTALL_RUNTIME_LIBS  OFF CACHE BOOL "Install runtime libs" FORCE)
     set(ALSOFT_EXAMPLES              OFF CACHE BOOL "Build examples"       FORCE)
     set(ALSOFT_TESTS                 OFF CACHE BOOL "Build tests"          FORCE)
     set(ALSOFT_UTILS                 OFF CACHE BOOL "Build utils"          FORCE)
@@ -38,11 +47,8 @@ if(SAGE_USE_OPENAL)
         # Windows: WASAPI is the modern low-latency audio API
         set(ALSOFT_REQUIRE_WASAPI ON CACHE BOOL "Require WASAPI backend on Windows" FORCE)
     elseif(UNIX AND NOT APPLE)
-        # Linux: disable PipeWire backend to avoid SIGSEGV crash during alcOpenDevice.
-        # The PipeWire backend in openal-soft 1.24.2 crashes in DeviceBase::DeviceBase
-        # (FlexArray::Create) on this system. Use ALSA+PulseAudio only, which matches
-        # the GeneralsX vcpkg openal-soft build that is known-stable on Linux.
-        set(ALSOFT_BACKEND_PIPEWIRE OFF CACHE BOOL "Disable PipeWire (causes SIGSEGV)" FORCE)
+        # Linux: disable PipeWire backend (known unstable on this system)
+        set(ALSOFT_BACKEND_PIPEWIRE OFF CACHE BOOL "Disable PipeWire backend" FORCE)
     endif()
 
     FetchContent_MakeAvailable(openal_soft)
