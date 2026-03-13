@@ -43,7 +43,8 @@
 
 // Windows type stubs
 #if !defined(_WIN32)
-    #define HANDLE void*
+    // typedef (not #define) so that later typedef void *HANDLE in types_compat.h is valid C++ redeclaration
+    typedef void* HANDLE;
     typedef unsigned char  U8;
     typedef signed char    S8;
     typedef unsigned short U16;
@@ -58,9 +59,22 @@
 typedef void* HDIGDRIVER;
 typedef void* HPROVIDER;
 typedef void* HSAMPLE;
+typedef void* HSTREAM;
 typedef void* H3DSAMPLE;
 typedef void* H3DPOBJECT;
 typedef void* HTIMER;
+
+// Windows CRITICAL_SECTION stub (no-op for Linux/OpenAL builds)
+#if !defined(_WIN32)
+typedef struct { int unused; } CRITICAL_SECTION;
+#endif
+
+// Miles Sound System lock/unlock stubs (no-op for Linux/OpenAL builds)
+// Defined as inline functions (not macros) so ::AIL_lock() with scope resolution works
+#if !defined(_WIN32)
+inline void AIL_lock() {}
+inline void AIL_unlock() {}
+#endif
 
 // Wave format stub
 typedef struct {

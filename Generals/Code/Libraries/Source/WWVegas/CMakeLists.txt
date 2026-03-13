@@ -4,16 +4,23 @@ add_library(g_wwcommon INTERFACE)
 target_link_libraries(g_wwcommon INTERFACE
     core_wwcommon
     d3d8lib
-    milesstub
     stlport
 )
+
+if(WIN32)
+    target_link_libraries(g_wwcommon INTERFACE
+        milesstub
+    )
+endif()
 
 target_include_directories(g_wwcommon INTERFACE
     ${CMAKE_CURRENT_SOURCE_DIR}
     WW3D2
 )
 
-add_subdirectory(WWAudio)
+if(WIN32)
+    add_subdirectory(WWAudio)
+endif()
 add_subdirectory(WW3D2)
 add_subdirectory(WWDownload)
 
