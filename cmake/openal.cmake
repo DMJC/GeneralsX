@@ -43,15 +43,73 @@ if(SAGE_USE_OPENAL)
     set(ALSOFT_UTILS                 OFF CACHE BOOL "Build utils"          FORCE)
     set(ALSOFT_NO_CONFIG_UTIL        ON  CACHE BOOL "Disable config util"  FORCE)
 
+    # Match the GeneralsX vcpkg openal-soft backend configuration exactly.
+    # vcpkg/ports/openal-soft/portfile.cmake disables all backends except the
+    # platform-required one. On Linux: ALSA only (no PulseAudio, PipeWire,
+    # JACK, OSS, PortAudio, Sndio). This is the known-stable configuration.
     if(WIN32)
-        # Windows: WASAPI is the modern low-latency audio API
-        set(ALSOFT_REQUIRE_WASAPI ON CACHE BOOL "Require WASAPI backend on Windows" FORCE)
+        set(ALSOFT_BACKEND_DSOUND   ON  CACHE BOOL "" FORCE)
+        set(ALSOFT_REQUIRE_DSOUND   ON  CACHE BOOL "" FORCE)
+        set(ALSOFT_BACKEND_WASAPI   ON  CACHE BOOL "" FORCE)
+        set(ALSOFT_REQUIRE_WASAPI   ON  CACHE BOOL "" FORCE)
+        set(ALSOFT_BACKEND_WINMM    OFF CACHE BOOL "" FORCE)
     elseif(UNIX AND NOT APPLE)
-        # Linux: disable PipeWire backend (known unstable on this system)
-        set(ALSOFT_BACKEND_PIPEWIRE OFF CACHE BOOL "Disable PipeWire backend" FORCE)
+        set(ALSOFT_BACKEND_ALSA     ON  CACHE BOOL "" FORCE)
+        set(ALSOFT_REQUIRE_ALSA     ON  CACHE BOOL "" FORCE)
+        set(ALSOFT_BACKEND_PIPEWIRE OFF CACHE BOOL "" FORCE)
+        set(ALSOFT_BACKEND_PULSEAUDIO OFF CACHE BOOL "" FORCE)
+        set(ALSOFT_BACKEND_JACK     OFF CACHE BOOL "" FORCE)
+        set(ALSOFT_BACKEND_OSS      OFF CACHE BOOL "" FORCE)
+        set(ALSOFT_BACKEND_SNDIO    OFF CACHE BOOL "" FORCE)
+        set(ALSOFT_BACKEND_PORTAUDIO OFF CACHE BOOL "" FORCE)
+    elseif(APPLE)
+        set(ALSOFT_BACKEND_COREAUDIO ON  CACHE BOOL "" FORCE)
+        set(ALSOFT_REQUIRE_COREAUDIO ON  CACHE BOOL "" FORCE)
     endif()
+    set(ALSOFT_BACKEND_SOLARIS  OFF CACHE BOOL "" FORCE)
+    set(ALSOFT_BACKEND_OBOE     OFF CACHE BOOL "" FORCE)
+    set(ALSOFT_BACKEND_WAVE     ON  CACHE BOOL "" FORCE)
 
     FetchContent_MakeAvailable(openal_soft)
+
+    # Patch opthelpers.h: define SIMDALIGN as alignas(32) on Linux.
+    #
+    # Root cause of SIGSEGV in DeviceBase::DeviceBase on Linux:
+    #   alcOpenDevice calls new(std::nothrow) al::Device{...}.
+    #   On Linux, SIMDALIGN is defined empty (non-MinGW branch), so alignof(DeviceBase)=8.
+    #   alignof(DeviceBase)=8 <= __STDCPP_DEFAULT_NEW_ALIGNMENT__=16, so C++17 uses the
+    #   plain operator new(size_t,nothrow_t) path, which calls the game's custom
+    #   operator new(size_t). The game's pool allocator guarantees only 8-byte alignment.
+    #   The DeviceBase constructor emits SSE movaps instructions (requires 16-byte
+    #   alignment) assuming the standard heap's 16-byte guarantee — SIGSEGV.
+    #
+    # Fix: define SIMDALIGN as alignas(32) on Linux too (matching the MinGW fix).
+    #   alignof(DeviceBase)=32 > __STDCPP_DEFAULT_NEW_ALIGNMENT__=16, so C++17 routes
+    #   new(nothrow) al::Device through operator new(size_t, align_val_t{32}, nothrow_t),
+    #   which calls our override operator new(size_t, align_val_t) = posix_memalign(32,...),
+    #   giving properly aligned memory. operator delete(p, align_val_t) calls free(p).
+    #
+    # Only patch once: skip if the Linux branch already contains alignas(32).
+    if(UNIX)
+        set(_opthelpers_path "${openal_soft_SOURCE_DIR}/common/opthelpers.h")
+        if(EXISTS "${_opthelpers_path}")
+            file(READ "${_opthelpers_path}" _opthelpers_content)
+            string(FIND "${_opthelpers_content}" "#define SIMDALIGN alignas(32)\n#endif" _already_patched)
+            if(_already_patched LESS 0)
+                string(REPLACE "#else\n#define SIMDALIGN\n#endif"
+                               "#else\n#define SIMDALIGN alignas(32)\n#endif"
+                               _opthelpers_patched "${_opthelpers_content}")
+                if(NOT "${_opthelpers_patched}" STREQUAL "${_opthelpers_content}")
+                    file(WRITE "${_opthelpers_path}" "${_opthelpers_patched}")
+                    message(STATUS "OpenAL opthelpers.h patched: SIMDALIGN=alignas(32) on Linux (fixes SIGSEGV from SSE movaps on 8-byte-aligned heap)")
+                else()
+                    message(WARNING "OpenAL opthelpers.h patch did not apply — string not found (line ending mismatch?)")
+                endif()
+            else()
+                message(STATUS "OpenAL opthelpers.h already patched: SIMDALIGN=alignas(32)")
+            endif()
+        endif()
+    endif()
 
     # openal-soft FetchContent creates the OpenAL::OpenAL imported target
     message(STATUS "OpenAL Soft configured: target OpenAL::OpenAL available")
