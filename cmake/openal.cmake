@@ -37,6 +37,12 @@ if(SAGE_USE_OPENAL)
     if(WIN32)
         # Windows: WASAPI is the modern low-latency audio API
         set(ALSOFT_REQUIRE_WASAPI ON CACHE BOOL "Require WASAPI backend on Windows" FORCE)
+    elseif(UNIX AND NOT APPLE)
+        # Linux: disable PipeWire backend to avoid SIGSEGV crash during alcOpenDevice.
+        # The PipeWire backend in openal-soft 1.24.2 crashes in DeviceBase::DeviceBase
+        # (FlexArray::Create) on this system. Use ALSA+PulseAudio only, which matches
+        # the GeneralsX vcpkg openal-soft build that is known-stable on Linux.
+        set(ALSOFT_BACKEND_PIPEWIRE OFF CACHE BOOL "Disable PipeWire (causes SIGSEGV)" FORCE)
     endif()
 
     FetchContent_MakeAvailable(openal_soft)
